@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const {ObjectID} = require('mongodb')
+const {ObjectID} = require('mongodb');
 
 
 var {mongoose} = require('./db/mongoose');
@@ -19,7 +19,7 @@ app.post('/todos', (req, res) => {
   });
   todo.save().then((doc) => {
     res.send(doc);
-  },(e) =>{
+  },(e) => {
     res.status(400).send(e);
   });
 });
@@ -56,6 +56,26 @@ app.get('/todos/:id', (req, res) => {
   // findbyID
 });
 
+app.delete('/todos/:id',(req, res) => {
+  // get the id
+  var id = req.params.id;
+
+  if(!ObjectID.isValid(id)) {
+    return res.status(404).send();
+  }
+
+  Todo.findByIdAndRemove(id).then((todo) => {
+    if(todo) {
+      // res.send(`${{todo}} \nwas delted`);
+      res.send(todo);
+    } else {
+      res.status(404).send();
+    }
+  }, (e) => {
+    res.status(404).send();
+  });
+});
+
 app.listen(port, () => {
   console.log(`Started on port ${port}`);
 });
@@ -64,7 +84,7 @@ module.exports = {app};
 
 // var newTodo = new Todo({
 //   text: 'Cook dinner'
-// });
+// });)
 //
 // newTodo.save().then((doc) => {
 //   console.log('Saved todo', doc);
