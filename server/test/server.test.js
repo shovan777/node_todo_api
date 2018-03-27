@@ -13,11 +13,13 @@ const {
 
 
 const todos = [{
-  _id: new ObjectID('5aacf904d1c77e266232cb93'),
+  _id: new ObjectID(),
   text: 'first test todo'
 }, {
-  _id: new ObjectID('5aacf904d1c77e266232cb94'),
-  text: 'second test todo'
+  _id: new ObjectID(),
+  text: 'second test todo',
+  completed: true,
+  completedAt: 333
 }];
 
 // make some changes to test friendly environment
@@ -102,9 +104,9 @@ describe('GET /todos/:id', () => {
   });
 
   it('should return 404 if todo not found', (done) => {
-    var id = '5aacf904d1c77e266232cb98'
+    var hexId = new ObjectID().toHexString();
     request(app)
-      .get(`/todos/${id}`)
+      .get(`/todos/${hexId}`)
       .expect(404)
       .end(done);
   });
@@ -118,3 +120,95 @@ describe('GET /todos/:id', () => {
   });
 
 });
+
+describe('Delete /todos/:id', () => {
+  it('should remove a todo', (done) => {
+    var hexId = todos[1]._id.toHexString();
+
+    request(app)
+      .delete(`/todos/${hexId}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo._id).toBe(hexId);
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(hexId).then((todo) => {
+          expect(todo).toNotExist();
+          done();
+        }).catch((e) => done(e));
+
+
+      });
+  });
+
+  it('should return 404 if todo not found', (done) => {
+    var hexId = new ObjectID().toHexString();
+    request(app)
+      .delete(`/todos/${hexId}`)
+      .expect(404)
+      .end(done);
+  });
+
+  it('should return 404 if id is invalid', (done) => {
+    request(app)
+      .delete('/todos/123')
+      .expect(404)
+      .end(done);
+  });
+});
+
+describe('PATCH /todos/:id', () => {
+  it('should update the todo', (done) => {
+    var hexId = todos[0]._id.toHexString();
+    var body = {
+      text: 'Feeling down',
+      completed: true
+    }
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send(body)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(body.text);
+        expect(res.body.todo.completed).toBe(true);
+        expect(res.body.todo.completedAt).toBeA('number');
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        done();
+
+
+      });
+  });
+
+  it('should clear completedAt when todo is not completed', (done) => {
+    var hexId = todos[1]._id.toHexString();
+    var body = {
+      text: 'Feeling depressed',
+      completed: false
+    }
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send(body)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(body.text);
+        expect(res.body.todo.completed).toBe(false);
+        expect(res.body.todo.completedAt).toNotExist();
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        done();
+
+
+      });
+  });
+})
